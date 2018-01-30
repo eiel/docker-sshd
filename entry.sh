@@ -24,7 +24,7 @@ print_fingerprints() {
     local BASE_DIR=${1-'/etc/ssh'}
     for item in dsa rsa ecdsa ed25519; do
         echo ">>> Fingerprints for ${item} host key"
-        ssh-keygen -E md5 -lf ${BASE_DIR}/ssh_host_${item}_key 
+        ssh-keygen -E md5 -lf ${BASE_DIR}/ssh_host_${item}_key
         ssh-keygen -E sha256 -lf ${BASE_DIR}/ssh_host_${item}_key
         ssh-keygen -E sha512 -lf ${BASE_DIR}/ssh_host_${item}_key
     done
@@ -62,29 +62,19 @@ if [ -w /etc/authorized_keys ]; then
     find /etc/authorized_keys/ -type f -exec chmod 644 {} \;
 fi
 
-# Add users if SSH_USERS=user:uid:gid set
-if [ -n "${SSH_USERS}" ]; then
-    USERS=$(echo $SSH_USERS | tr "," "\n")
-    for U in $USERS; do
-        IFS=':' read -ra UA <<< "$U"
-        _NAME=${UA[0]}
-        _UID=${UA[1]}
-        _GID=${UA[2]}
+# Add users git
+_NAME=git
+_UID=1001
+_GID=1001
 
-        echo ">> Adding user ${_NAME} with uid: ${_UID}, gid: ${_GID}."
-        if [ ! -e "/etc/authorized_keys/${_NAME}" ]; then
-            echo "WARNING: No SSH authorized_keys found for ${_NAME}!"
-        fi
-        getent group ${_NAME} >/dev/null 2>&1 || addgroup -g ${_GID} ${_NAME}
-        getent passwd ${_NAME} >/dev/null 2>&1 || adduser -D -u ${_UID} -G ${_NAME} -s '' ${_NAME}
-        passwd -u ${_NAME} || true
-    done
-else
-    # Warn if no authorized_keys
-    if [ ! -e ~/.ssh/authorized_keys ] && [ ! $(ls -A /etc/authorized_keys) ]; then
-      echo "WARNING: No SSH authorized_keys found!"
-    fi
+echo ">> Adding user ${_NAME} with uid: ${_UID}, gid: ${_GID}."
+if [ ! -e "/etc/authorized_keys/${_NAME}" ]; then
+  echo "WARNING: No SSH authorized_keys found for ${_NAME}!"
 fi
+getent group ${_NAME} >/dev/null 2>&1 || addgroup -g ${_GID} ${_NAME}
+getent passwd ${_NAME} >/dev/null 2>&1 || adduser -D -u ${_UID} -G ${_NAME} -s '' ${_NAME}
+passwd -u ${_NAME} || true
+echo ${AUTHORIZED_KEY} > /etc/authorized_keys/${_NAME}
 
 # Update MOTD
 if [ -v MOTD ]; then
